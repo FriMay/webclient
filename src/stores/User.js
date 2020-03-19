@@ -88,7 +88,7 @@ const addGroupSubjectMutation =
 class User {
 
     constructor() {
-        this.authorize("La", "La");
+        // this.authorize("La", "La");
     }
 
     @observable teachers = null;

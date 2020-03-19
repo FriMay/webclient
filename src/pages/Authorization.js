@@ -19,43 +19,43 @@ const Authorization = () => {
     };
 
     return (
-        <div className="App">
-            <header className="App-logo">
-                <header className="App-image">
+            <div className="App">
+                <header className="App-logo">
+                    <header className="App-image">
 
-                    <div className="App-header">
-                        <Form
-                            {...layout}
-                            name="basic"
-                            initialValues={{remember: true}}
-                            onFinish={onFinish}
-                        >
-                            <Form.Item
-                                label={<a style={{color:"#fff"}}>Логин</a>}
-                                name="login"
-                                rules={[{required: true, message: 'Введите ваше имя пользователя!'}]}
+                        <div className="App-header">
+                            <Form
+                                {...layout}
+                                name="basic"
+                                initialValues={{remember: true}}
+                                onFinish={onFinish}
                             >
-                                <Input/>
-                            </Form.Item>
+                                <Form.Item
+                                    label={<a style={{color: "#fff"}}>Логин</a>}
+                                    name="login"
+                                    rules={[{required: true, message: 'Введите ваше имя пользователя!'}]}
+                                >
+                                    <Input/>
+                                </Form.Item>
 
-                            <Form.Item
-                                label={<a style={{color:"#fff"}}>Пароль</a>}
-                                name="password"
-                                rules={[{required: true, message: 'Введите ваш пароль!'}]}
-                            >
-                                <Input.Password/>
-                            </Form.Item>
+                                <Form.Item
+                                    label={<a style={{color: "#fff"}}>Пароль</a>}
+                                    name="password"
+                                    rules={[{required: true, message: 'Введите ваш пароль!'}]}
+                                >
+                                    <Input.Password/>
+                                </Form.Item>
 
-                            <Form.Item {...tailLayout}>
-                                <Button type="primary" htmlType="submit">
-                                    Войти
-                                </Button>
-                            </Form.Item>
-                        </Form>
-                    </div>
+                                <Form.Item {...tailLayout}>
+                                    <Button type="primary" htmlType="submit">
+                                        Войти
+                                    </Button>
+                                </Form.Item>
+                            </Form>
+                        </div>
+                    </header>
                 </header>
-            </header>
-        </div>
+            </div>
     );
 };
 
