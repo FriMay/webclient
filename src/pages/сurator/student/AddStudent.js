@@ -17,6 +17,7 @@ const tailLayout = {
 
 const AddStudent = () => {
     const onFinish = values => {
+        userStore.isStudentsListReload = true;
         userStore.addStudent(values);
     };
 

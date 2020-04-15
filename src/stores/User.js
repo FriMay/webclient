@@ -74,6 +74,7 @@ const subjectListQuery =
                 subjectName
             }
             teacher{
+                id
                 firstName
                 secondName
             }
@@ -104,6 +105,7 @@ const addGroupSubjectMutation =
                 subjectName
             }
             teacher{
+                id
                 firstName
                 secondName
             }
@@ -113,6 +115,8 @@ const addGroupSubjectMutation =
 class User {
 
     @observable disabledMap = {};
+
+    @observable isStudentsListReload = true;
 
     @observable isTeachersDisabledReload = true;
 
@@ -126,13 +130,15 @@ class User {
 
     @observable allSubjects = null;
 
-    @observable subjectListOnWeekTable = null;
+    @observable subjectListOnWeekTable = undefined;
 
-    @observable subjectListOnWeekData = null;
+    @observable dataToChange = null;
+
+    @observable subjectListOnWeekData = {};
 
     constructor() {
-        reaction(() => this.subjectListOnWeekData,
-            (subjectListOnWeekData) => {
+        reaction(() => this.dataToChange,
+            (dataToChange) => {
                 let data = [
                     {
                         time: "8:00-9:35"
@@ -159,8 +165,8 @@ class User {
                         time: "21:05-22:40"
                     }
                 ];
-                for (let i in subjectListOnWeekData) {
-                    data[subjectListOnWeekData[i].orderNumber - 1][subjectListOnWeekData[i].dayOfWeek] = subjectListOnWeekData[i];
+                for (let i of userStore.subjectListOnWeekData[userStore.currentGroup]) {
+                    data[i.orderNumber - 1][i.dayOfWeek] = i;
                 }
 
                 for (let i = 0; i < data.length; i++) {
@@ -176,8 +182,6 @@ class User {
     }
 
     @action setTeachersDisabled(dayOfWeek, orderNumber) {
-        let a = userStore.teachers;
-
         let teachersList = [];
 
         for (let i of userStore.teachers) {
@@ -231,12 +235,15 @@ class User {
                 }
             }
         ).then((res) => {
-            if (res.data.addUser === null) {
-                message.info("Такой логин существует!");
-                return;
-            }
-            message.success("Студент успешно добавлен!");
-            userStore.setCurrentStudentList(userStore.currentGroup);
+            client.clearStore().then(r => {
+                if (res.data.addUser === null) {
+                    message.info("Такой логин существует!");
+                    return;
+                }
+                message.success("Студент успешно добавлен!");
+                userStore.setCurrentStudentList(userStore.currentGroup);
+            });
+
         }).catch(() => {
             message.success("Студент не добавлен! Попробуйте позже");
         })
@@ -267,43 +274,71 @@ class User {
                 userId: userStore.currentUser.id
             }
         }).then(res => {
-            if (res.data.addGroupSubject !== null) {
-                userStore.subjectListOnWeekData=[...JSON.parse(JSON.stringify(userStore.subjectListOnWeekData)), res.data.addGroupSubject];
-                message.success("Предмет добавлен в расписание");
-            }
+            client.clearStore().then(r => {
+                if (res.data.addGroupSubject !== null) {
+                    if (userStore.disabledMap[values.dayOfWeek + " " + values.orderNumber] === undefined) {
+                        let disabled = {};
+                        disabled[values.teacherId] = true;
+                        userStore.disabledMap[values.dayOfWeek + " " + values.orderNumber] = disabled;
+                    } else {
+                        userStore.disabledMap[values.dayOfWeek + " " + values.orderNumber][values.teacherId] = true;
+                    }
+                    userStore.subjectListOnWeekData[userStore.currentGroup] = [...JSON.parse(JSON.stringify(userStore.subjectListOnWeekData[userStore.currentGroup])), res.data.addGroupSubject];
+                    userStore.dataToChange = JSON.parse(JSON.stringify(userStore.dataToChange));
+                    message.success("Предмет добавлен в расписание");
+                }
+            });
         });
     }
 
-    @action deleteGroupSubject(groupSubjectId){
+    @action deleteGroupSubject(context) {
         client.mutate({
             mutation: deleteGroupSubjectMutation,
-            variables:{
-                groupSubjectId: groupSubjectId
+            variables: {
+                groupSubjectId: context.id
             }
-        }).then(res=>{
-            message.success("Предмет удалён успешно");
-            let index = -1;
-            for (let i in userStore.subjectListOnWeekData){
-                if (userStore.subjectListOnWeekData[i].id === res.data.deleteGroupSubject.id){
-                    index = i;
-                    break;
+        }).then(res => {
+            client.clearStore().then(r =>{
+                message.success("Предмет удалён успешно");
+                let index = -1;
+                if (userStore.disabledMap[context.dayOfWeek + " " + context.orderNumber] === undefined) {
+                    let disabled = {};
+                    disabled[context.teacher.id] = false;
+                    userStore.disabledMap[context.dayOfWeek + " " + context.orderNumber] = disabled;
+                } else {
+                    userStore.disabledMap[context.dayOfWeek + " " + context.orderNumber][context.teacher.id] = false;
                 }
-            }
-            let newData = JSON.parse(JSON.stringify(userStore.subjectListOnWeekData));
-            newData.splice(index,1);
-            userStore.subjectListOnWeekData = newData;
+
+                for (let i in userStore.subjectListOnWeekData[userStore.currentGroup]) {
+                    if (userStore.subjectListOnWeekData[userStore.currentGroup][i].id === res.data.deleteGroupSubject.id) {
+                        index = i;
+                        break;
+                    }
+                }
+                let newData = JSON.parse(JSON.stringify(userStore.subjectListOnWeekData[userStore.currentGroup]));
+                newData.splice(index, 1);
+                userStore.subjectListOnWeekData[userStore.currentGroup] = newData;
+                userStore.dataToChange = JSON.parse(JSON.stringify(userStore.dataToChange));
+            });
+
         });
     }
 
     @action setCurrentSubjectList(value) {
-        client.query({
-            query: subjectListQuery,
-            variables: {
-                groupId: value
-            }
-        }).then(res => {
-            userStore.subjectListOnWeekData = res.data.subjectListOnWeek;
-        })
+        if (userStore.subjectListOnWeekData[value] !== undefined ){
+            userStore.currentGroup = value;
+            userStore.dataToChange = JSON.parse(JSON.stringify(userStore.dataToChange));
+        }else{
+            client.query({
+                query: subjectListQuery,
+                variables: {
+                    groupId: value
+                }
+            }).then(res => {
+                userStore.subjectListOnWeekData[userStore.currentGroup] = res.data.subjectListOnWeek;
+                userStore.dataToChange = res.data.subjectListOnWeek;
+            })
+        }
     }
 }
 

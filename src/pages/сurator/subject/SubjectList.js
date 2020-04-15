@@ -6,6 +6,8 @@ import PlusOutlined from "@ant-design/icons/lib/icons/PlusOutlined";
 import Text from "antd/es/typography/Text";
 import MinusOutlined from "@ant-design/icons/lib/icons/MinusOutlined";
 import Form from "antd/es/form";
+import { Switch, Radio} from 'antd';
+import { DownOutlined } from '@ant-design/icons';
 
 const {Option} = Select;
 
@@ -15,42 +17,40 @@ const layout = {
 };
 
 const AddSubjectToGroup = observer((props) => {
+    const [teachers, setTeachers] = useState(null);
     const onFinish = values => {
         props.resultEvent(values);
     };
+
     if (userStore.disabledMap[props.dayOfWeek + " " + props.orderNumber] === undefined) {
         userStore.setTeachersDisabled(props.dayOfWeek, props.orderNumber).then((res) => {
             let teacherList = [];
-            let newDisabled = JSON.parse(JSON.stringify(teacherDisabled));
-            for (let i in newDisabled) {
-                newDisabled[i] = false;
+
+            userStore.disabledMap[props.dayOfWeek + " " + props.orderNumber] = {};
+
+            for (let i of userStore.teachers) {
+                userStore.disabledMap[props.dayOfWeek + " " + props.orderNumber][i.id] = false;
             }
 
             if (res.data.teachersDisabled.length !== 0) {
                 for (let o of res.data.teachersDisabled) {
-                    newDisabled[o.teacher.id] = true;
+                    userStore.disabledMap[props.dayOfWeek + " " + props.orderNumber][o.teacher.id] = true;
                 }
             }
 
             for (let i of userStore.teachers) {
-                teacherList.push(<Option disabled={newDisabled[i.id]}
+                teacherList.push(<Option disabled={userStore.disabledMap[props.dayOfWeek + " " + props.orderNumber][i.id]}
                                          value={i.id}>{i.firstName + " " + (i.lastName !== undefined ? i.lastName : "")}</Option>);
             }
-            userStore.disabledMap[props.dayOfWeek + " " + props.orderNumber] = newDisabled;
-            setTeacherDisabled(newDisabled);
-            setTeachers(teacherList);
 
+            setTeachers(teacherList);
         });
     }
-
 
     useEffect(() => {
         userStore.setAllSubjects();
     }, []);
 
-
-    const [teachers, setTeachers] = useState(null);
-    const [teacherDisabled, setTeacherDisabled] = useState({});
 
     let subjects = [];
 
@@ -60,19 +60,15 @@ const AddSubjectToGroup = observer((props) => {
         }
     }
 
-    if (teachers === null) {
-        if (userStore.teachers !== null) {
+    if (teachers === null || userStore.isTeachersDisabledReload) {
+        if (userStore.teachers !== null && userStore.disabledMap[props.dayOfWeek + " " + props.orderNumber] !== undefined) {
+            userStore.isTeachersDisabledReload = false;
             let teacherList = [];
-            let disabledArray = {};
-            for (let i of userStore.teachers) {
-                disabledArray[i.id] = false;
-            }
 
             for (let i of userStore.teachers) {
-                teacherList.push(<Option disabled={disabledArray[i.id]}
-                                         value={i.id}>{i.firstName + " " + (i.lastName !== null ? i.lastName : "")}</Option>);
+                teacherList.push(<Option disabled={userStore.disabledMap[props.dayOfWeek + " " + props.orderNumber][i.id]}
+                                         value={i.id}>{i.firstName + " " + (i.lastName != null ? i.lastName : "")}</Option>);
             }
-            setTeacherDisabled(disabledArray);
             setTeachers(teacherList);
         }
     }
@@ -114,22 +110,22 @@ const AddSubjectToGroup = observer((props) => {
 });
 
 const SubjectList = observer(() => {
-    useEffect(() => {
-        userStore.setTeachers();
-    }, []);
+
     let groups = [];
     let defaultOpen = userStore.currentUser.group[0].id;
+
+    useEffect(() => {
+        userStore.setTeachers();
+        userStore.currentGroup = defaultOpen;
+    }, []);
 
     const [visible, setVisible] = useState(false);
 
     const [values, setValues] = useState({});
 
-    userStore.currentGroup = defaultOpen;
-
     const [group, setGroup] = useState(userStore.currentGroup);
 
-
-    if (userStore.subjectListOnWeekTable === null) {
+    if (userStore.subjectListOnWeekTable === undefined) {
         userStore.setCurrentSubjectList(defaultOpen);
     }
 
@@ -143,11 +139,11 @@ const SubjectList = observer(() => {
         groups.push(<Option value={i.id}>{i.name}</Option>)
     }
 
-
     const render = (context) => {
         if (context.subject === undefined) {
             return <Tooltip title="Добавить пару">
                 <Button onClick={() => {
+                    userStore.isTeachersDisabledReload = true;
                     setValues({dayOfWeek: context.dayOfWeek, orderNumber: context.orderNumber});
                     setVisible(true);
                 }} type="primary" shape="circle" icon={<PlusOutlined/>}/>
@@ -162,7 +158,8 @@ const SubjectList = observer(() => {
                     <Popconfirm
                         title="Вы уверены, что хотите удалить пару?"
                         onConfirm={() => {
-                            userStore.deleteGroupSubject(context.id);
+                            userStore.isTeachersDisabledReload = true;
+                            userStore.deleteGroupSubject(context);
                         }}
                         okText="Да"
                         cancelText="Нет"
@@ -175,7 +172,7 @@ const SubjectList = observer(() => {
     };
 
     const columnStyle = {
-        width: "150px",
+        width: 150,
         align: "center"
     };
 
@@ -233,7 +230,7 @@ const SubjectList = observer(() => {
     const [form] = Form.useForm();
 
     return <React.Fragment>
-        <Select style={{width: 120}} defaultValue={defaultOpen} onChange={handleChange}>
+        <Select  style={{width: 120}} defaultValue={defaultOpen} onChange={handleChange}>
             {groups}
         </Select>
         <br/>
@@ -243,7 +240,6 @@ const SubjectList = observer(() => {
             onCancel={() => {
                 setVisible(false);
                 form.resetFields();
-                userStore.isTeachersDisabledReload = true;
             }}
             onOk={() => {
                 form.submit();
@@ -260,7 +256,6 @@ const SubjectList = observer(() => {
                                    };
                                    userStore.addGroupSubject(data);
                                    form.resetFields();
-                                   userStore.isTeachersDisabledReload = true;
                                }}/>
 
         </Modal>

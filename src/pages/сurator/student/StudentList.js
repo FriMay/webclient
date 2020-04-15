@@ -26,7 +26,8 @@ const StudentList = observer(() =>{
 
     userStore.currentGroup = defaultOpen;
 
-    if (userStore.currentStudentList === null){
+    if (userStore.currentStudentList === null || userStore.isStudentsListReload === true){
+        userStore.isStudentsListReload = false;
         userStore.setCurrentStudentList(defaultOpen);
     }
 

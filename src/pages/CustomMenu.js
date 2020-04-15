@@ -45,7 +45,14 @@ const CustomMenu = () => {
 
 
     return <React.Fragment>
-        <Menu style={{width: "256px", height: "100vh", float: "left"}} mode="inline" theme="dark"
+        <Menu style=
+                  {{
+                      width: "256px",
+            height: "100vh",
+            float: "left"
+                  }}
+              mode="inline"
+              theme="dark"
               defaultSelectedKeys={['general']}>
             {items}
             <div id={'content'}/>

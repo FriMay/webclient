@@ -27,14 +27,14 @@ html{
   height: 100%;
   background-image: url(MainImage.jpg);
   opacity: 1;
-  /*background-size: cover;*/
+  background-size: cover;
 
 }
 
 .App {
   display: inline-block;
   box-sizing: border-box;
-//border: 1px solid #000;
+  border: 1px solid #000;
 }
 
 .App-logo:hover {
