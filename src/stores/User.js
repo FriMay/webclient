@@ -1,4 +1,4 @@
-import {action, observable} from 'mobx';
+import {action, observable, reaction} from 'mobx';
 import React from "react";
 import ApolloClient, {gql} from "apollo-boost";
 import {message} from 'antd';
@@ -41,12 +41,6 @@ const teacherDisabledListQuery = gql`query teachr($dayOfWeek:Int!, $orderNumber:
     }
 }`;
 
-const groupSubjectsByDayQuery = gql`query subjectsListOnDay($groupId:Int!, $dayOfWeek:Int!){
-        subjectsOnDay(groupId:$groupId, dayOfWeek:$dayOfWeek){
-            id
-            orderNumber
-        }
-    }`;
 
 const allSubjectListQuery = gql`query qw{
         allSubjects{
@@ -70,6 +64,21 @@ const authorizationQuery =
             }
         }
     }`;
+const subjectListQuery =
+    gql`query subjectListOnWeek($groupId:Int!){
+        subjectListOnWeek(groupId:$groupId){
+            id
+            dayOfWeek
+            orderNumber
+            subject{
+                subjectName
+            }
+            teacher{
+                firstName
+                secondName
+            }
+        }
+    }`;
 
 const addStudentMutation =
     gql`mutation add($userId:Int!, $user:UserInputType!, $groupId:Int!) {
@@ -78,18 +87,34 @@ const addStudentMutation =
         }
     }`;
 
+const deleteGroupSubjectMutation =
+    gql`mutation delete($groupSubjectId:Int!) {
+        deleteGroupSubject(groupSubjectId:$groupSubjectId){
+            id
+        }
+    }`;
+
 const addGroupSubjectMutation =
     gql`mutation add($groupSubject:GroupSubjectInputType!, $userId: Int!) {
         addGroupSubject(groupSubject:$groupSubject, userId: $userId){
             id
+            dayOfWeek
+            orderNumber
+            subject{
+                subjectName
+            }
+            teacher{
+                firstName
+                secondName
+            }
         }
     }`;
 
 class User {
 
-    constructor() {
-        // this.authorize("La", "La");
-    }
+    @observable disabledMap = {};
+
+    @observable isTeachersDisabledReload = true;
 
     @observable teachers = null;
 
@@ -101,39 +126,82 @@ class User {
 
     @observable allSubjects = null;
 
-    @action setGroupSubjectsToDay(groupId, dayOfWeek){
-        return  client.query({
-            query: groupSubjectsByDayQuery,
-            variables: {groupId, dayOfWeek}
-        });
+    @observable subjectListOnWeekTable = null;
+
+    @observable subjectListOnWeekData = null;
+
+    constructor() {
+        reaction(() => this.subjectListOnWeekData,
+            (subjectListOnWeekData) => {
+                let data = [
+                    {
+                        time: "8:00-9:35"
+                    },
+                    {
+                        time: "9:50-11:25"
+                    },
+                    {
+                        time: "11:40-13:15"
+                    },
+                    {
+                        time: "13:45-15:20"
+                    },
+                    {
+                        time: "15:35-17:10"
+                    },
+                    {
+                        time: "17:25-19:00"
+                    },
+                    {
+                        time: "19:15-20:50"
+                    },
+                    {
+                        time: "21:05-22:40"
+                    }
+                ];
+                for (let i in subjectListOnWeekData) {
+                    data[subjectListOnWeekData[i].orderNumber - 1][subjectListOnWeekData[i].dayOfWeek] = subjectListOnWeekData[i];
+                }
+
+                for (let i = 0; i < data.length; i++) {
+                    for (let j = 1; j <= 7; j++) {
+                        if (data[i][j] === undefined)
+                            data[i][j] = {dayOfWeek: j, orderNumber: i + 1};
+                    }
+                }
+
+                userStore.subjectListOnWeekTable = data;
+            });
+        this.authorize("La", "La");
     }
 
-    @action setTeachersDisabled(dayOfWeek, orderNumber){
+    @action setTeachersDisabled(dayOfWeek, orderNumber) {
         let a = userStore.teachers;
 
         let teachersList = [];
 
-        for (let i of userStore.teachers){
+        for (let i of userStore.teachers) {
             teachersList.push(i.id);
         }
+
         return client.query({
-            query:teacherDisabledListQuery,
-            variables: {dayOfWeek,orderNumber, teachers: teachersList}
+            query: teacherDisabledListQuery,
+            variables: {dayOfWeek, orderNumber, teachers: teachersList}
         });
     }
 
-    @action setTeachers(){
-        client.query({
+    @action setTeachers() {
+        return client.query({
             query: teacherListQuery
-        }).then(res=>{
+        }).then(res => {
             userStore.teachers = res.data.teachers;
         });
     }
 
-    @action setAllSubjects(){
+    @action setAllSubjects() {
         client.query({
             query: allSubjectListQuery
-        }).then(res=>{
+        }).then(res => {
             userStore.allSubjects = res.data.allSubjects;
         });
     }
@@ -162,14 +230,14 @@ class User {
                     groupId: values.groupId
                 }
             }
-        ).then((res)=>{
-            if (res.data.addUser === null){
+        ).then((res) => {
+            if (res.data.addUser === null) {
                 message.info("Такой логин существует!");
                 return;
             }
             message.success("Студент успешно добавлен!");
             userStore.setCurrentStudentList(userStore.currentGroup);
-        }).catch(()=>{
+        }).catch(() => {
             message.success("Студент не добавлен! Попробуйте позже");
         })
 
@@ -198,11 +266,44 @@ class User {
                 groupSubject: values,
                 userId: userStore.currentUser.id
             }
-        }).then(res=>{
-            if (res.data.addGroupSubject !== null){
+        }).then(res => {
+            if (res.data.addGroupSubject !== null) {
+                userStore.subjectListOnWeekData=[...JSON.parse(JSON.stringify(userStore.subjectListOnWeekData)), res.data.addGroupSubject];
                 message.success("Предмет добавлен в расписание");
             }
         });
+    }
+
+    @action deleteGroupSubject(groupSubjectId){
+        client.mutate({
+            mutation: deleteGroupSubjectMutation,
+            variables:{
+                groupSubjectId: groupSubjectId
+            }
+        }).then(res=>{
+            message.success("Предмет удалён успешно");
+            let index = -1;
+            for (let i in userStore.subjectListOnWeekData){
+                if (userStore.subjectListOnWeekData[i].id === res.data.deleteGroupSubject.id){
+                    index = i;
+                    break;
+                }
+            }
+            let newData = JSON.parse(JSON.stringify(userStore.subjectListOnWeekData));
+            newData.splice(index,1);
+            userStore.subjectListOnWeekData = newData;
+        });
+    }
+
+    @action setCurrentSubjectList(value) {
+        client.query({
+            query: subjectListQuery,
+            variables: {
+                groupId: value
+            }
+        }).then(res => {
+            userStore.subjectListOnWeekData = res.data.subjectListOnWeek;
+        })
     }
 }
 

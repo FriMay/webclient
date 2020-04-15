@@ -1,5 +1,5 @@
 import userStore from "../stores/User";
-import { StarOutlined, StarFilled, StarTwoTone } from '@ant-design/icons';
+import {StarOutlined, StarFilled, StarTwoTone} from '@ant-design/icons';
 import {NavLink} from 'react-router-dom';
 import React from "react";
 import {Menu} from "antd";
@@ -7,7 +7,7 @@ import Routes from "./Routes";
 import UserOutlined from "@ant-design/icons/lib/icons/UserOutlined";
 import BookOutlined from "@ant-design/icons/lib/icons/BookOutlined";
 
-const {SubMenu} =  Menu;
+const {SubMenu} = Menu;
 
 const CustomMenu = () => {
 
@@ -21,7 +21,7 @@ const CustomMenu = () => {
                 key="students"
                 title={
                     <span>
-                <UserOutlined />
+                <UserOutlined/>
                 <span>Студенты</span>
               </span>
                 }
@@ -33,14 +33,12 @@ const CustomMenu = () => {
                 key="subjects"
                 title={
                     <span>
-                <BookOutlined />
+                <BookOutlined/>
                 <span>Предметы</span>
-              </span>
-                }
+              </span>}
             >
-                <Menu.Item key="addSubjectToGroup"><NavLink to={'/addSubjectToGroup'}>Добавить предмет к группе</NavLink></Menu.Item>
+                <Menu.Item key="subjectList"><NavLink to={'/subjectList'}>Расписание</NavLink></Menu.Item>
             </SubMenu>
-
         );
     }
     // items.push(<Menu.Item key="addStudent"><NavLink to={'/addStudent'}>Добавить студента</NavLink></Menu.Item>);
