@@ -16,8 +16,21 @@ const client = new ApolloClient({
     }
 });
 
-const studentListQuery = gql`query studentList($groupId:Int!){
+const studentListQuery =
+    gql`query studentList($groupId:Int!){
         studentsByGroupId(groupId:$groupId){
+            id
+            firstName
+            secondName
+            lastName
+            login
+            password
+        }
+    }`;
+
+const teacherListQuery =
+    gql`query teachr{
+        teachers{
             id
             firstName
             secondName
@@ -25,15 +38,8 @@ const studentListQuery = gql`query studentList($groupId:Int!){
         }
     }`;
 
-const teacherListQuery = gql`query teachr{
-        teachers{
-            id
-            firstName
-            secondName
-        }
-    }`;
-
-const teacherDisabledListQuery = gql`query teachr($dayOfWeek:Int!, $orderNumber: Int!, $teachers:[Int]){
+const teacherDisabledListQuery =
+    gql`query teachr($dayOfWeek:Int!, $orderNumber: Int!, $teachers:[Int]){
     teachersDisabled(dayOfWeek:$dayOfWeek, orderNumber:$orderNumber, teachers:$teachers){
         teacher{
             id
@@ -41,8 +47,8 @@ const teacherDisabledListQuery = gql`query teachr($dayOfWeek:Int!, $orderNumber:
     }
 }`;
 
-
-const allSubjectListQuery = gql`query qw{
+const allSubjectListQuery =
+    gql`query qw{
         allSubjects{
             id
             subjectName
@@ -64,6 +70,7 @@ const authorizationQuery =
             }
         }
     }`;
+
 const subjectListQuery =
     gql`query subjectListOnWeek($groupId:Int!){
         subjectListOnWeek(groupId:$groupId){
@@ -77,13 +84,21 @@ const subjectListQuery =
                 id
                 firstName
                 secondName
+                lastName
             }
         }
     }`;
 
 const addStudentMutation =
-    gql`mutation add($userId:Int!, $user:UserInputType!, $groupId:Int!) {
+    gql`mutation addUser($userId:Int!, $user:UserInputType!, $groupId:Int!) {
         addUser(userId:$userId, user:$user, groupId:$groupId){
+            id
+        }
+    }`;
+
+const deleteUserMutation =
+    gql`mutation del($deleteId:Int!, $userId:Int!){
+        deleteUser(userId:$userId, deleteId:$deleteId){
             id
         }
     }`;
@@ -108,6 +123,7 @@ const addGroupSubjectMutation =
                 id
                 firstName
                 secondName
+                lastName
             }
         }
     }`;
@@ -122,7 +138,7 @@ class User {
 
     @observable teachers = null;
 
-    @observable currentStudentList = null;
+    @observable currentStudentList = {};
 
     @observable currentUser = null;
 
@@ -138,7 +154,7 @@ class User {
 
     constructor() {
         reaction(() => this.dataToChange,
-            (dataToChange) => {
+            () => {
                 let data = [
                     {
                         time: "8:00-9:35"
@@ -181,75 +197,9 @@ class User {
         this.authorize("La", "La");
     }
 
-    @action setTeachersDisabled(dayOfWeek, orderNumber) {
-        let teachersList = [];
 
-        for (let i of userStore.teachers) {
-            teachersList.push(i.id);
-        }
-
-        return client.query({
-            query: teacherDisabledListQuery,
-            variables: {dayOfWeek, orderNumber, teachers: teachersList}
-        });
-    }
-
-    @action setTeachers() {
-        return client.query({
-            query: teacherListQuery
-        }).then(res => {
-            userStore.teachers = res.data.teachers;
-        });
-    }
-
-    @action setAllSubjects() {
-        client.query({
-            query: allSubjectListQuery
-        }).then(res => {
-            userStore.allSubjects = res.data.allSubjects;
-        });
-    }
-
-    @action setCurrentStudentList(groupId) {
-        client.query({
-            query: studentListQuery,
-            variables: {groupId: groupId}
-        }).then(res => {
-            userStore.currentStudentList = res.data.studentsByGroupId;
-        })
-    }
-
-    @action addStudent(values) {
-        client.mutate({
-                mutation: addStudentMutation,
-                variables: {
-                    userId: userStore.currentUser.id,
-                    user: {
-                        firstName: values.firstName,
-                        secondName: values.secondName,
-                        lastName: values.lastName,
-                        login: values.login,
-                        password: values.password
-                    },
-                    groupId: values.groupId
-                }
-            }
-        ).then((res) => {
-            client.clearStore().then(r => {
-                if (res.data.addUser === null) {
-                    message.info("Такой логин существует!");
-                    return;
-                }
-                message.success("Студент успешно добавлен!");
-                userStore.setCurrentStudentList(userStore.currentGroup);
-            });
-
-        }).catch(() => {
-            message.success("Студент не добавлен! Попробуйте позже");
-        })
-
-    }
-
+    ////////////////////////////////////////
+    ////////Работа с пользователем//////////
     @action authorize(login, password) {
         client.query({
             query: authorizationQuery,
@@ -264,6 +214,49 @@ class User {
         }).catch(res => {
             message.error("Вам запрещён доступ в систему администрирования!");
         });
+    }
+    ////////Работа с пользователем//////////
+    ////////////////////////////////////////
+
+
+    ////////////////////////////////////////
+    //////////Функции добавления////////////
+    @action addStudent(values, setVisible, formReset) {
+
+        let cur = userStore.currentGroup;
+
+        debugger;
+
+        client.mutate({
+                mutation: addStudentMutation,
+                variables: {
+                    userId: userStore.currentUser.id,
+                    user: {
+                        firstName: values.firstName,
+                        secondName: values.secondName,
+                        lastName: values.lastName,
+                        login: values.login,
+                        password: values.password
+                    },
+                    groupId: userStore.currentGroup
+                }
+            }
+        ).then((res) => {
+            client.clearStore().then(() => {
+                if (res.data.addUser === null) {
+                    message.info("Такой логин существует!");
+                    return;
+                }
+                message.success("Студент успешно добавлен!");
+                setVisible(false);
+                formReset();
+                userStore.setCurrentStudentList(userStore.currentGroup);
+            });
+
+        }).catch(() => {
+            message.warning("Студент не добавлен! Попробуйте позже");
+        })
+
     }
 
     @action addGroupSubject(values) {
@@ -290,7 +283,12 @@ class User {
             });
         });
     }
+    //////////Функции добавления////////////
+    ////////////////////////////////////////
 
+
+    ////////////////////////////////////////
+    ///////////Функции удаления/////////////
     @action deleteGroupSubject(context) {
         client.mutate({
             mutation: deleteGroupSubjectMutation,
@@ -324,6 +322,66 @@ class User {
         });
     }
 
+    @action deleteUser(context){
+        client.mutate(
+            {
+                mutation: deleteUserMutation,
+                variables:{
+                    userId: userStore.currentUser.id,
+                    deleteId: context.id
+                }
+            }
+        ).then(()=>{
+            message.success("Пользователь успешно удалён.");
+            userStore.setCurrentStudentList(userStore.currentGroup);
+        });
+    }
+    ///////////Функции удаления/////////////
+    ////////////////////////////////////////
+
+
+    ////////////////////////////////////////
+    ///////Функции установки значений///////
+    @action setTeachersDisabled(dayOfWeek, orderNumber) {
+        let teachersList = [];
+
+        for (let i of userStore.teachers) {
+            teachersList.push(i.id);
+        }
+
+        return client.query({
+            query: teacherDisabledListQuery,
+            variables: {dayOfWeek, orderNumber, teachers: teachersList}
+        });
+    }
+
+    @action setTeachers() {
+        return client.query({
+            query: teacherListQuery
+        }).then(res => {
+            userStore.teachers = res.data.teachers;
+        });
+    }
+
+    @action setAllSubjects() {
+        client.query({
+            query: allSubjectListQuery
+        }).then(res => {
+            userStore.allSubjects = res.data.allSubjects;
+        });
+    }
+
+    @action setCurrentStudentList(groupId) {
+        client.clearStore().then(()=>{
+            client.query({
+                query: studentListQuery,
+                variables: {groupId: groupId}
+            }).then(res => {
+                userStore.currentStudentList[userStore.currentGroup] = res.data.studentsByGroupId;
+            })
+        })
+    }
+
     @action setCurrentSubjectList(value) {
         if (userStore.subjectListOnWeekData[value] !== undefined ){
             userStore.currentGroup = value;
@@ -340,6 +398,9 @@ class User {
             })
         }
     }
+    ///////Функции установки значений///////
+    ////////////////////////////////////////
+
 }
 
 const userStore = new User();

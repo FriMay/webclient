@@ -6,8 +6,6 @@ import PlusOutlined from "@ant-design/icons/lib/icons/PlusOutlined";
 import Text from "antd/es/typography/Text";
 import MinusOutlined from "@ant-design/icons/lib/icons/MinusOutlined";
 import Form from "antd/es/form";
-import { Switch, Radio} from 'antd';
-import { DownOutlined } from '@ant-design/icons';
 
 const {Option} = Select;
 
@@ -15,6 +13,18 @@ const layout = {
     labelCol: {span: 12},
     wrapperCol: {span: 12},
 };
+
+const SHORT_LENGTH_FOR_SELECT = 12;
+
+const shortenName = (name, length) => {
+    if (name.length > length) {
+        return <Tooltip placement="rightTop" title={name}>
+            {name.slice(0, length) + "..."}
+        </Tooltip>;
+    } else {
+        return name;
+    }
+}
 
 const AddSubjectToGroup = observer((props) => {
     const [teachers, setTeachers] = useState(null);
@@ -39,8 +49,9 @@ const AddSubjectToGroup = observer((props) => {
             }
 
             for (let i of userStore.teachers) {
-                teacherList.push(<Option disabled={userStore.disabledMap[props.dayOfWeek + " " + props.orderNumber][i.id]}
-                                         value={i.id}>{i.firstName + " " + (i.lastName !== undefined ? i.lastName : "")}</Option>);
+                teacherList.push(<Option
+                    disabled={userStore.disabledMap[props.dayOfWeek + " " + props.orderNumber][i.id]}
+                    value={i.id}>{shortenName(i.firstName + " " + (i.lastName !== undefined ? i.lastName : ""), SHORT_LENGTH_FOR_SELECT)}</Option>);
             }
 
             setTeachers(teacherList);
@@ -56,7 +67,7 @@ const AddSubjectToGroup = observer((props) => {
 
     if (userStore.allSubjects !== null) {
         for (let i of userStore.allSubjects) {
-            subjects.push(<Option value={i.id}>{i.subjectName}</Option>);
+            subjects.push(<Option value={i.id}>{shortenName(i.subjectName, SHORT_LENGTH_FOR_SELECT)}</Option>);
         }
     }
 
@@ -66,13 +77,13 @@ const AddSubjectToGroup = observer((props) => {
             let teacherList = [];
 
             for (let i of userStore.teachers) {
-                teacherList.push(<Option disabled={userStore.disabledMap[props.dayOfWeek + " " + props.orderNumber][i.id]}
-                                         value={i.id}>{i.firstName + " " + (i.lastName != null ? i.lastName : "")}</Option>);
+                teacherList.push(<Option
+                    disabled={userStore.disabledMap[props.dayOfWeek + " " + props.orderNumber][i.id]}
+                    value={i.id}>{shortenName(i.firstName + " " + (i.lastName != null ? i.lastName : ""), SHORT_LENGTH_FOR_SELECT)}</Option>);
             }
             setTeachers(teacherList);
         }
     }
-
 
     return <React.Fragment>
         <Form
@@ -117,7 +128,7 @@ const SubjectList = observer(() => {
     useEffect(() => {
         userStore.setTeachers();
         userStore.currentGroup = defaultOpen;
-    }, []);
+    }, [defaultOpen]);
 
     const [visible, setVisible] = useState(false);
 
@@ -150,9 +161,9 @@ const SubjectList = observer(() => {
             </Tooltip>
         } else {
             return <React.Fragment>
-                <Text>{context.subject.subjectName}</Text>
+                <Text>{shortenName(context.subject.subjectName, SHORT_LENGTH_FOR_SELECT)}</Text>
                 <br/>
-                <Text>{context.teacher.firstName + (context.teacher.secondName == null ? "" : " " + context.teacher.secondName)}</Text>
+                <Text>{shortenName(context.teacher.firstName + (context.teacher.lastName == null ? "" : " " + context.teacher.lastName), SHORT_LENGTH_FOR_SELECT)}</Text>
                 <br/>
                 <Tooltip title="Удалить пару">
                     <Popconfirm
@@ -172,7 +183,7 @@ const SubjectList = observer(() => {
     };
 
     const columnStyle = {
-        width: 150,
+        width: 100,
         align: "center"
     };
 
@@ -230,7 +241,7 @@ const SubjectList = observer(() => {
     const [form] = Form.useForm();
 
     return <React.Fragment>
-        <Select  style={{width: 120}} defaultValue={defaultOpen} onChange={handleChange}>
+        <Select style={{width: 120}} defaultValue={defaultOpen} onChange={handleChange}>
             {groups}
         </Select>
         <br/>

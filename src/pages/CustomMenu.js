@@ -1,5 +1,4 @@
 import userStore from "../stores/User";
-import {StarOutlined, StarFilled, StarTwoTone} from '@ant-design/icons';
 import {NavLink} from 'react-router-dom';
 import React from "react";
 import {Menu} from "antd";
@@ -23,10 +22,8 @@ const CustomMenu = () => {
                     <span>
                 <UserOutlined/>
                 <span>Студенты</span>
-              </span>
-                }
+              </span>}
             >
-                <Menu.Item key="addStudent"><NavLink to={'/addStudent'}>Добавить студента</NavLink></Menu.Item>
                 <Menu.Item key="studentList"><NavLink to={'/studentList'}>Список студентов</NavLink></Menu.Item>
             </SubMenu>,
             <SubMenu
@@ -41,15 +38,14 @@ const CustomMenu = () => {
             </SubMenu>
         );
     }
-    // items.push(<Menu.Item key="addStudent"><NavLink to={'/addStudent'}>Добавить студента</NavLink></Menu.Item>);
 
 
     return <React.Fragment>
         <Menu style=
                   {{
                       width: "256px",
-            height: "100vh",
-            float: "left"
+                      height: "100vh",
+                      float: "left"
                   }}
               mode="inline"
               theme="dark"
