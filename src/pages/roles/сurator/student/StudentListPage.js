@@ -1,57 +1,13 @@
 import React, {useEffect, useState} from "react";
 import {Button, Form, Input, Modal, Popconfirm, Select, Table, Tooltip} from "antd";
-import userStore from "../../../stores/User";
+import userStore from "../../../../stores/User";
 import {observer} from "mobx-react";
 import DeleteOutlined from "@ant-design/icons/lib/icons/DeleteOutlined";
+import GroupSelector from "../../../utils/GroupSelector";
 
 const {Option} = Select;
 
-const columnStyle = {
-    width: 200
-}
 
-const columns = [
-    {
-        title: 'Имя',
-        dataIndex: 'firstName',
-        ...columnStyle
-    },
-    {
-        title: 'Фамилия',
-        dataIndex: 'lastName',
-        ...columnStyle
-    },
-    {
-        title: 'Отчество',
-        dataIndex: 'secondName',
-        ...columnStyle
-    },
-    {
-        title: 'Логин',
-        dataIndex: 'login',
-        ...columnStyle
-    },
-    {
-        title: 'Пароль',
-        dataIndex: 'password',
-        ...columnStyle
-    },
-    {
-        title: 'Действия',
-        ...columnStyle,
-        align: 'center',
-        render: (context) => {
-            return <Tooltip title="Удалить студента" placement="rightTop">
-                <Popconfirm placement="topLeft" title={"Вы уверены, что хотите удалить этого студента?"} onConfirm={()=>{
-                    userStore.deleteUser(context);
-                }} okText="Да" cancelText="Нет">
-                    <Button type="primary" shape="circle" icon={<DeleteOutlined />} />
-                </Popconfirm>
-            </Tooltip>
-        }
-
-    }
-];
 
 const AddStudentModal = observer(() => {
 
@@ -140,35 +96,55 @@ const AddStudentModal = observer(() => {
         </Button>
 
     </React.Fragment>;
-})
+});
 
+const StudentListPage = observer(() => {
 
-const StudentList = observer(() => {
-    let groups = [];
-    let defaultOpen = userStore.currentUser.group[0].id;
-
-    useEffect(()=>{
-        userStore.currentGroup = defaultOpen;
-    }, []);
-
-    if (userStore.currentStudentList === null || userStore.isStudentsListReload === true) {
-        userStore.isStudentsListReload = false;
-        userStore.setCurrentStudentList(defaultOpen);
+    const columnStyle = {
+        width: 200
     }
 
-    const handleChange = (value) => {
-        userStore.currentGroup = value;
-        userStore.setCurrentStudentList(value);
-    };
+    const columns = [
+        ...userStore.columnsForStudentList(columnStyle),
+        {
+            title: 'Логин',
+            dataIndex: 'login',
+            ...columnStyle
+        },
+        {
+            title: 'Пароль',
+            dataIndex: 'password',
+            ...columnStyle
+        },
+        {
+            title: 'Действия',
+            ...columnStyle,
+            align: 'center',
+            render: (context) => {
+                return <Tooltip title="Удалить студента" placement="rightTop">
+                    <Popconfirm placement="topLeft" title={"Вы уверены, что хотите удалить этого студента?"} onConfirm={()=>{
+                        userStore.deleteUser(context);
+                    }} okText="Да" cancelText="Нет">
+                        <Button type="primary" shape="circle" icon={<DeleteOutlined />} />
+                    </Popconfirm>
+                </Tooltip>
+            }
 
-    for (let i of userStore.currentUser.group) {
-        groups.push(<Option value={i.id}>{i.name}</Option>)
-    }
+        }
+    ];
 
     return <React.Fragment>
-        <Select style={{width: 120}} defaultValue={defaultOpen} onChange={handleChange}>
-            {groups}
-        </Select>
+        <GroupSelector restoreEvent={(defOpen)=>{
+            if (userStore.currentStudentList === null || userStore.isStudentsListReload === true) {
+                userStore.isStudentsListReload = false;
+                userStore.setCurrentStudentList(defOpen);
+            }
+        }}
+
+        handleChange={(value)=>{
+            userStore.setCurrentStudentList(value);
+        }}
+        />
         <br/>
         <Table bordered={true} columns={columns} dataSource={userStore.currentStudentList[userStore.currentGroup]}
                size="middle"/>
@@ -177,4 +153,4 @@ const StudentList = observer(() => {
 
 });
 
-export default StudentList;
+export default StudentListPage;

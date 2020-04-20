@@ -1,8 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import Authorization from './pages/Authorization';
+import AuthorizationPage from './pages/AuthorizationPage';
 import * as serviceWorker from './serviceWorker';
 
-ReactDOM.render(<Authorization />, document.getElementById('root'));
+ReactDOM.render(<AuthorizationPage />, document.getElementById('root'));
 
 serviceWorker.unregister();

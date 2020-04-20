@@ -13,7 +13,7 @@ const tailLayout = {
     wrapperCol: {offset: 8, span: 16},
 };
 
-const Authorization = () => {
+const AuthorizationPage = () => {
     const onFinish = values => {
         authorize(values.login, values.password);
     };
@@ -59,4 +59,4 @@ const Authorization = () => {
     );
 };
 
-export default Authorization;
+export default AuthorizationPage;

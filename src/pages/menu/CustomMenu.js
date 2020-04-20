@@ -1,10 +1,11 @@
-import userStore from "../stores/User";
+import userStore from "../../stores/User";
 import {NavLink} from 'react-router-dom';
 import React from "react";
 import {Menu} from "antd";
 import Routes from "./Routes";
 import UserOutlined from "@ant-design/icons/lib/icons/UserOutlined";
 import BookOutlined from "@ant-design/icons/lib/icons/BookOutlined";
+import BellOutlined from "@ant-design/icons/lib/icons/BellOutlined";
 
 const {SubMenu} = Menu;
 
@@ -13,6 +14,19 @@ const CustomMenu = () => {
     let items = [<Menu.Item key="general"><NavLink to={'/'}>Главная</NavLink></Menu.Item>];
 
     if (userStore.currentUser.userRole.roleName === "Teacher") {
+
+        items.push(
+            <SubMenu
+                key="subjects"
+                title={
+                    <span>
+                <BookOutlined/>
+                <span>Предметы</span>
+              </span>}
+            >
+                <Menu.Item key="scheduleList"><NavLink to={'/scheduleList'}>Расписание</NavLink></Menu.Item>
+            </SubMenu>
+        )
 
     } else {
         items.push(
@@ -40,6 +54,18 @@ const CustomMenu = () => {
     }
 
 
+    items.push(<SubMenu
+        key="notification"
+        title={
+            <span>
+                <BellOutlined />
+                <span>Уведомления</span>
+              </span>}
+    >
+        <Menu.Item key="notificationList"><NavLink to={'/notificationList'}>Список уведомлений</NavLink></Menu.Item>
+    </SubMenu>)
+
+
     return <React.Fragment>
         <Menu style=
                   {{
@@ -49,7 +75,14 @@ const CustomMenu = () => {
                   }}
               mode="inline"
               theme="dark"
-              defaultSelectedKeys={['general']}>
+              defaultSelectedKeys={['general']}
+              onSelect={()=>{
+                  if (userStore.notificationSelectReload !=null){
+                      userStore.currentNotification = null;
+                      userStore.notificationSelectReload();
+                  }
+              }}
+        >
             {items}
             <div id={'content'}/>
         </Menu>

@@ -1,11 +1,12 @@
 import {observer} from "mobx-react";
-import userStore from "../../../stores/User";
+import userStore from "../../../../stores/User";
 import React, {useEffect, useState} from "react";
 import {Button, Modal, Popconfirm, Select, Table, Tooltip} from "antd";
 import PlusOutlined from "@ant-design/icons/lib/icons/PlusOutlined";
 import Text from "antd/es/typography/Text";
 import MinusOutlined from "@ant-design/icons/lib/icons/MinusOutlined";
 import Form from "antd/es/form";
+import GroupSelector from "../../../utils/GroupSelector";
 
 const {Option} = Select;
 
@@ -14,28 +15,32 @@ const layout = {
     wrapperCol: {span: 12},
 };
 
-const SHORT_LENGTH_FOR_SELECT = 12;
-
-const shortenName = (name, length) => {
-    if (name.length > length) {
-        return <Tooltip placement="rightTop" title={name}>
-            {name.slice(0, length) + "..."}
-        </Tooltip>;
-    } else {
-        return name;
-    }
+const getFullName = (value)=>{
+    return (value.lastName != null ? value.lastName + " " : "") + value.firstName + (value.secondName != null ? " " + value.secondName  : "")
 }
 
 const AddSubjectToGroup = observer((props) => {
     const [teachers, setTeachers] = useState(null);
+
+    const setTeachersList = () =>{
+        let teacherList = [];
+        for (let i of userStore.teachers) {
+            teacherList.push(<Option
+                disabled={userStore.disabledMap[props.dayOfWeek + " " + props.orderNumber][i.id]}
+                value={i.id}>{userStore.shortenName(getFullName(i))}</Option>);
+        }
+
+        teacherList.sort(userStore.sortComparator);
+
+        setTeachers(teacherList);
+    }
+
     const onFinish = values => {
         props.resultEvent(values);
     };
 
     if (userStore.disabledMap[props.dayOfWeek + " " + props.orderNumber] === undefined) {
         userStore.setTeachersDisabled(props.dayOfWeek, props.orderNumber).then((res) => {
-            let teacherList = [];
-
             userStore.disabledMap[props.dayOfWeek + " " + props.orderNumber] = {};
 
             for (let i of userStore.teachers) {
@@ -48,13 +53,8 @@ const AddSubjectToGroup = observer((props) => {
                 }
             }
 
-            for (let i of userStore.teachers) {
-                teacherList.push(<Option
-                    disabled={userStore.disabledMap[props.dayOfWeek + " " + props.orderNumber][i.id]}
-                    value={i.id}>{shortenName(i.firstName + " " + (i.lastName !== undefined ? i.lastName : ""), SHORT_LENGTH_FOR_SELECT)}</Option>);
-            }
+            setTeachersList();
 
-            setTeachers(teacherList);
         });
     }
 
@@ -66,22 +66,17 @@ const AddSubjectToGroup = observer((props) => {
     let subjects = [];
 
     if (userStore.allSubjects !== null) {
+
+        userStore.allSubjects.sort((a,b)=>userStore.sortComparator(a.subjectName, b.subjectName))
         for (let i of userStore.allSubjects) {
-            subjects.push(<Option value={i.id}>{shortenName(i.subjectName, SHORT_LENGTH_FOR_SELECT)}</Option>);
+            subjects.push(<Option value={i.id}>{userStore.shortenName(i.subjectName)}</Option>);
         }
     }
 
     if (teachers === null || userStore.isTeachersDisabledReload) {
         if (userStore.teachers !== null && userStore.disabledMap[props.dayOfWeek + " " + props.orderNumber] !== undefined) {
             userStore.isTeachersDisabledReload = false;
-            let teacherList = [];
-
-            for (let i of userStore.teachers) {
-                teacherList.push(<Option
-                    disabled={userStore.disabledMap[props.dayOfWeek + " " + props.orderNumber][i.id]}
-                    value={i.id}>{shortenName(i.firstName + " " + (i.lastName != null ? i.lastName : ""), SHORT_LENGTH_FOR_SELECT)}</Option>);
-            }
-            setTeachers(teacherList);
+            setTeachersList();
         }
     }
 
@@ -100,6 +95,8 @@ const AddSubjectToGroup = observer((props) => {
                 rules={[{required: true, message: 'Выберите предмет'}]}
             >
                 <Select
+                    showSearch
+                    filterOption={userStore.filterComparator}
                     style={{width: 120}}>
                     {subjects}
                 </Select>
@@ -111,6 +108,8 @@ const AddSubjectToGroup = observer((props) => {
                 rules={[{required: true, message: 'Выберите преподавателя!'}]}
             >
                 <Select
+                    showSearch
+                    filterOption={userStore.filterComparator}
                     style={{width: 120}}>
                     {teachers}
                 </Select>
@@ -120,35 +119,14 @@ const AddSubjectToGroup = observer((props) => {
     </React.Fragment>;
 });
 
-const SubjectList = observer(() => {
-
-    let groups = [];
-    let defaultOpen = userStore.currentUser.group[0].id;
-
+const SubjectListPage = observer(() => {
     useEffect(() => {
         userStore.setTeachers();
-        userStore.currentGroup = defaultOpen;
-    }, [defaultOpen]);
+    }, []);
 
     const [visible, setVisible] = useState(false);
 
     const [values, setValues] = useState({});
-
-    const [group, setGroup] = useState(userStore.currentGroup);
-
-    if (userStore.subjectListOnWeekTable === undefined) {
-        userStore.setCurrentSubjectList(defaultOpen);
-    }
-
-    const handleChange = (value) => {
-        userStore.currentGroup = value;
-        setGroup(userStore.currentGroup);
-        userStore.setCurrentSubjectList(value);
-    };
-
-    for (let i of userStore.currentUser.group) {
-        groups.push(<Option value={i.id}>{i.name}</Option>)
-    }
 
     const render = (context) => {
         if (context.subject === undefined) {
@@ -161,9 +139,9 @@ const SubjectList = observer(() => {
             </Tooltip>
         } else {
             return <React.Fragment>
-                <Text>{shortenName(context.subject.subjectName, SHORT_LENGTH_FOR_SELECT)}</Text>
+                <Text>{userStore.shortenName(context.subject.subjectName, 9)}</Text>
                 <br/>
-                <Text>{shortenName(context.teacher.firstName + (context.teacher.lastName == null ? "" : " " + context.teacher.lastName), SHORT_LENGTH_FOR_SELECT)}</Text>
+                <Text>{userStore.shortenName(getFullName(context.teacher), 9)}</Text>
                 <br/>
                 <Tooltip title="Удалить пару">
                     <Popconfirm
@@ -175,77 +153,31 @@ const SubjectList = observer(() => {
                         okText="Да"
                         cancelText="Нет"
                     >
-                        <Button type="primary" shape="circle" icon={<MinusOutlined/>}/>
+                        <Button danger type="primary" shape="circle" icon={<MinusOutlined/>}/>
                     </Popconfirm>
                 </Tooltip>
             </React.Fragment>
         }
     };
 
-    const columnStyle = {
-        width: 100,
-        align: "center"
-    };
-
-    const columns = [
-        {
-            title: "Время",
-            dataIndex: "time",
-            ...columnStyle
-        },
-        {
-            title: "Понедельник",
-            dataIndex: "1",
-            render: render,
-            ...columnStyle
-        },
-        {
-            title: "Вторник",
-            dataIndex: "2",
-            render: render,
-            ...columnStyle
-
-        },
-        {
-            title: "Среда",
-            dataIndex: "3",
-            render: render,
-            ...columnStyle
-        },
-        {
-            title: "Четверг",
-            dataIndex: "4",
-            render: render,
-            ...columnStyle
-        },
-        {
-            title: "Пятница",
-            dataIndex: "5",
-            render: render,
-            ...columnStyle
-        },
-        {
-            title: "Суббота",
-            dataIndex: "6",
-            render: render,
-            ...columnStyle
-        },
-        {
-            title: "Воскресение",
-            dataIndex: "7",
-            render: render,
-            ...columnStyle
-        }
-    ];
 
     const [form] = Form.useForm();
 
     return <React.Fragment>
-        <Select style={{width: 120}} defaultValue={defaultOpen} onChange={handleChange}>
-            {groups}
-        </Select>
+        <GroupSelector
+            restoreEvent={(defOpen) => {
+                if (userStore.subjectListOnWeekTable === undefined) {
+                    userStore.setCurrentSubjectList(defOpen);
+                }
+            }}
+            handleChange={(value) => {
+                userStore.setCurrentSubjectList(value);
+            }}/>
         <br/>
-        <Table pagination={false} columns={columns} dataSource={userStore.subjectListOnWeekTable} size="middle"
+        <Table pagination={false}
+               columns={userStore.columnsForSubjectList(render)}
+               dataSource={userStore.subjectListOnWeekTable}
+               size="middle"
                bordered/>
         <Modal
             onCancel={() => {
@@ -257,7 +189,7 @@ const SubjectList = observer(() => {
             }}
             visible={visible}>
 
-            <AddSubjectToGroup form={form} dayOfWeek={values.dayOfWeek} orderNumber={values.orderNumber} group={group}
+            <AddSubjectToGroup form={form} dayOfWeek={values.dayOfWeek} orderNumber={values.orderNumber}
                                resultEvent={(res) => {
                                    setVisible(false);
                                    let data = {
@@ -274,4 +206,4 @@ const SubjectList = observer(() => {
 
 });
 
-export default SubjectList;
+export default SubjectListPage;
