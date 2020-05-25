@@ -5,10 +5,9 @@ import {message, Tooltip} from 'antd';
 import ReactDOM from 'react-dom';
 import {BrowserRouter} from 'react-router-dom';
 import CustomMenu from "../pages/menu/CustomMenu";
-import moment from "moment";
 
 const client = new ApolloClient({
-    uri: "http://localhost:5000/graphql/",
+    uri: "http://192.168.1.102:8080/graphql/",
     headers: {
         "Content-Type": "application/json",
         'Access-Control-Allow-Origin': '*',
@@ -398,8 +397,6 @@ class User {
 
                 userStore.subjectListOnWeekTable = data;
             });
-        this.authorize("proshkina", "elena");
-        // this.authorize("ivanchukov", "anton");
     }
 
 
@@ -412,11 +409,12 @@ class User {
         }).then(res => {
             if (res.data.login === null) {
                 message.info("Такого пользователя не существует!");
+                return;
             }
             userStore.currentUser = res.data.login;
             message.success("Вход выполнен успешно");
             ReactDOM.render(<BrowserRouter><CustomMenu/></BrowserRouter>, document.getElementById('root'))
-        }).catch(res => {
+        }).catch(() => {
             message.error("Вам запрещён доступ в систему администрирования!");
         });
     }
@@ -592,13 +590,13 @@ class User {
                         userStore.attendance[userStore.currentGroup] = {};
 
                     debugger
-                    userStore.attendance[userStore.currentGroup][data.id]= {};
+                    userStore.attendance[userStore.currentGroup][data.id] = {};
 
-                    userStore.attendance[userStore.currentGroup][data.id][data.date]= {};
+                    userStore.attendance[userStore.currentGroup][data.id][data.date] = {};
 
                     let newData = {};
 
-                    for (let i of r.data.attendance){
+                    for (let i of r.data.attendance) {
                         newData[i.user.id] = {
                             groupSubjectId: data.id,
                             markId: i.mark.id,
@@ -637,16 +635,16 @@ class User {
                 variables: {groupId: groupId}
             }).then(res => {
                 userStore.currentStudentList[groupId] = res.data.studentsByGroupId;
-                if (underEvent!==undefined)
+                if (underEvent !== undefined)
                     underEvent(dataUnderEvent);
             })
         })
     }
 
-    @action setMarkList(){
+    @action setMarkList() {
         return client.query({
             query: markListQuery
-        }).then((r)=>{
+        }).then((r) => {
             userStore.markList = r.data.allMarks;
         });
     }
@@ -767,13 +765,12 @@ class User {
 
     @action editUserMarkByUserList(userMarkList) {
         let data = [];
-        for (let i in userMarkList){
+        for (let i in userMarkList) {
             data.push(userMarkList[i]);
         }
-debugger;
         return client.mutate({
             mutation: editUserMarkByUserListMutation,
-            variables:{
+            variables: {
                 userMarks: data
             }
         })

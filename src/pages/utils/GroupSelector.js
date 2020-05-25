@@ -7,6 +7,7 @@ const {Option} = Select;
 
 const GroupSelector = observer((props) => {
     let groups = [];
+
     let defaultOpen = userStore.currentUser.group[0].id;
 
     useEffect(() => {

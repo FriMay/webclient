@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+import React, {useState} from "react";
 import {Button, Form, Input, Modal, Popconfirm, Select, Table, Tooltip} from "antd";
 import userStore from "../../../../stores/User";
 import {observer} from "mobx-react";
@@ -6,8 +6,6 @@ import DeleteOutlined from "@ant-design/icons/lib/icons/DeleteOutlined";
 import GroupSelector from "../../../utils/GroupSelector";
 
 const {Option} = Select;
-
-
 
 const AddStudentModal = observer(() => {
 
@@ -40,6 +38,8 @@ const AddStudentModal = observer(() => {
                     form.resetFields();
                 }
             }
+            cancelText="Отменить"
+            okText="Добавить"
             visible={visible}>
             <Form
                 {...layout}

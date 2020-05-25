@@ -13,7 +13,7 @@ const CustomMenu = () => {
 
     let items = [<Menu.Item key="general"><NavLink to={'/'}>Главная</NavLink></Menu.Item>];
 
-    if (userStore.currentUser.userRole.roleName === "Teacher") {
+    if (userStore.currentUser.userRole.roleName === "Преподаватель") {
 
         items.push(
             <SubMenu
