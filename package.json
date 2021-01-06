@@ -9,7 +9,7 @@
     "@testing-library/user-event": "^7.2.1",
     "antd": "^4.0.2",
     "apollo-boost": "^0.4.7",
-    "axios": "^0.19.2",
+    "axios": "^0.21.1",
     "customize-cra": "^0.9.1",
     "graphql": "^14.6.0",
     "mobx": "^5.15.4",
