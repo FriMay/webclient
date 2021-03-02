@@ -10,7 +10,7 @@
     "antd": "^4.0.2",
     "apollo-boost": "^0.4.7",
     "axios": "^0.19.2",
-    "customize-cra": "^0.9.1",
+    "customize-cra": "^1.0.0",
     "graphql": "^14.6.0",
     "mobx": "^5.15.4",
     "mobx-react": "^6.1.8",
